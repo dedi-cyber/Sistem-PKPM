@@ -1,0 +1,1369 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SIM-PKPM Kemenag - Penilaian Kinerja Pengawas Madrasah</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            kemenag: {
+              50: '#f0fdf4',
+              100: '#dcfce7',
+              500: '#22c55e',
+              600: '#16a34a',
+              700: '#15803d',
+              800: '#166534',
+              900: '#14532d',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- React 18 & ReactDOM -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  
+  <!-- Babel for JSX -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- html2pdf.js for PDF Export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+  <!-- Google Font: Inter & Noto Serif for print docs -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Serif:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    .font-serif-official {
+      font-family: 'Noto Serif', serif;
+    }
+    @media print {
+      .no-print {
+        display: none !important;
+      }
+      .print-only {
+        display: block !important;
+      }
+      body {
+        background-color: #ffffff !important;
+        color: #000000 !important;
+      }
+      .page-break {
+        page-break-before: always;
+      }
+    }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 antialiased min-h-screen">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    // --- DATA INDIKATOR PEDOMAN PKPM KEMENAG (JUKNIS DITPENMAD) ---
+    const INDIKATOR_JENJANG = {
+      Muda: {
+        K1: [
+          { id: 'k1_1', title: '1.1 Program Pengawasan Tahunan', desc: 'Memiliki program pengawasan tahunan yang memenuhi 6 aspek (RA/MI/MTs/MA).' },
+          { id: 'k1_2', title: '1.2 Program Pembinaan Guru', desc: 'Memiliki program pembinaan guru yang memenuhi 8 aspek.' },
+          { id: 'k1_3', title: '1.3 Program Pemantauan 4 SNP', desc: 'Memiliki program pemantauan 4 Standar Nasional Pendidikan (Isi, Proses, SKL, Penilaian).' },
+          { id: 'k1_4', title: '1.4 Program Penilaian Kinerja Guru (PKG)', desc: 'Memiliki program penilaian kinerja guru yang memenuhi 8 aspek.' },
+          { id: 'k1_5', title: '1.5 Program Semester', desc: 'Memiliki program semester yang memenuhi 4 aspek.' },
+          { id: 'k1_6', title: '1.6 Rencana Pengawasan Akademik (RPA/RPBK)', desc: 'Memiliki RPA/RPBK yang memenuhi 10 aspek.' }
+        ],
+        K2: [
+          { id: 'k2_1', title: '2.1 Pelaksanaan Pembinaan Guru', desc: 'Laporan pelaksanaan program pembinaan guru memenuhi 10 aspek.' },
+          { id: 'k2_2', title: '2.2 Pemantauan 4 SNP', desc: 'Laporan pemantauan pelaksanaan 4 SNP memenuhi 10 aspek.' },
+          { id: 'k2_3', title: '2.3 Penilaian Kinerja Guru (PKG)', desc: 'Laporan pelaksanaan program penilaian kinerja guru memenuhi 10 aspek.' },
+          { id: 'k2_4', title: '2.4 Laporan Tahunan Pelaksanaan', desc: 'Laporan tahunan pelaksanaan program pengawasan memenuhi 7 aspek.' }
+        ],
+        K3: [
+          { id: 'k3_1', title: '3.1 Evaluasi Hasil Pembinaan Guru', desc: 'Laporan evaluasi hasil pelaksanaan pembinaan guru di madrasah binaan.' },
+          { id: 'k3_2', title: '3.2 Evaluasi Pemantauan 4 SNP', desc: 'Laporan evaluasi pemantauan pelaksanaan 4 SNP di madrasah binaan.' },
+          { id: 'k3_3', title: '3.3 Evaluasi Penilaian Kinerja Guru', desc: 'Laporan evaluasi hasil penilaian kinerja guru.' },
+          { id: 'k3_4', title: '3.4 Laporan Evaluasi Pengawasan', desc: 'Laporan evaluasi hasil pelaksanaan program pengawasan memenuhi 8 aspek.' }
+        ],
+        K4: [
+          { id: 'k4_1', title: '4.1 Program Bimlat Guru KKG/MGMP', desc: 'Program pembimbingan dan pelatihan profesional guru di KKG/MGMP.' },
+          { id: 'k4_2', title: '4.2 Pelaksanaan Bimlat Guru KKG/MGMP', desc: 'Laporan pelaksanaan pembimbingan dan pelatihan guru di KKG/MGMP.' },
+          { id: 'k4_3', title: '4.3 Evaluasi Hasil Bimlat Guru', desc: 'Laporan evaluasi hasil pembimbingan dan pelatihan guru.' },
+          { id: 'k4_4', title: '4.4 Laporan Tahunan Bimlat Guru', desc: 'Laporan tahunan hasil pembimbingan dan pelatihan guru.' }
+        ]
+      },
+      Madya: {
+        K1: [
+          { id: 'k1_1', title: '1.1 Program Pengawasan Tahunan', desc: 'Memiliki program pengawasan tahunan yang memenuhi 6 aspek.' },
+          { id: 'k1_2', title: '1.2 Program Pembinaan Guru & Kepala Madrasah', desc: 'Memiliki program pembinaan guru dan/atau kepala madrasah memenuhi 8 aspek.' },
+          { id: 'k1_3', title: '1.3 Program Pemantauan 8 SNP', desc: 'Memiliki program pemantauan 8 Standar Nasional Pendidikan (Lengkap).' },
+          { id: 'k1_4', title: '1.4 Program PKG & PKKM', desc: 'Memiliki program penilaian kinerja guru dan kepala madrasah.' },
+          { id: 'k1_5', title: '1.5 Program Semester', desc: 'Memiliki program semester pengawasan akademik dan manajerial.' },
+          { id: 'k1_6', title: '1.6 RPA/RPBK & RPM', desc: 'Memiliki RPA/RPBK dan Rencana Pengawasan Manajerial (RPM) 10 aspek.' }
+        ],
+        K2: [
+          { id: 'k2_1', title: '2.1 Pelaksanaan Pembinaan Guru & Kepala Madrasah', desc: 'Laporan pelaksanaan pembinaan guru dan/atau kepala madrasah.' },
+          { id: 'k2_2', title: '2.2 Pemantauan 8 SNP', desc: 'Laporan pemantauan 8 Standar Nasional Pendidikan di madrasah binaan.' },
+          { id: 'k2_3', title: '2.3 Pelaksanaan PKG & PKKM', desc: 'Laporan penilaian kinerja guru dan/atau kepala madrasah (PKKM).' },
+          { id: 'k2_4', title: '2.4 Laporan Tahunan Pelaksanaan Program', desc: 'Laporan tahunan pelaksanaan program pengawasan memenuhi 7 aspek.' }
+        ],
+        K3: [
+          { id: 'k3_1', title: '3.1 Evaluasi Pembinaan Guru & Kepala Madrasah', desc: 'Laporan evaluasi pembinaan guru dan/atau kepala madrasah.' },
+          { id: 'k3_2', title: '3.2 Evaluasi Pemantauan 8 SNP', desc: 'Laporan evaluasi hasil pemantauan 8 SNP di madrasah binaan.' },
+          { id: 'k3_3', title: '3.3 Evaluasi PKG & PKKM', desc: 'Laporan evaluasi hasil penilaian kinerja guru dan kepala madrasah.' },
+          { id: 'k3_4', title: '3.4 Laporan Evaluasi Program Pengawasan', desc: 'Laporan evaluasi hasil pelaksanaan program pengawasan (8 aspek).' },
+          { id: 'k3_5', title: '3.5 Evaluasi Pengawasan Kab/Kota', desc: 'Laporan evaluasi pengawasan tingkat Kabupaten/Kota (jika tidak ada Utama).' }
+        ],
+        K4: [
+          { id: 'k4_1', title: '4.1 Program Bimlat Guru & Kepala Madrasah', desc: 'Program bimlat di KKG/MGMP dan KKKM/MKKS.' },
+          { id: 'k4_2', title: '4.2 Pelaksanaan Bimlat KKG/MGMP & KKKM', desc: 'Laporan pelaksanaan bimlat profesional guru dan kepala madrasah.' },
+          { id: 'k4_3', title: '4.3 Bimlat Kepala Madrasah (Manajemen & SIM)', desc: 'Membimbing KM dalam program, rencana kerja, evaluasi, kepemimpinan & SIM.' },
+          { id: 'k4_4', title: '4.4 Evaluasi Hasil Bimlat Guru & KM', desc: 'Laporan evaluasi hasil bimlat guru dan kepala madrasah.' },
+          { id: 'k4_5', title: '4.5 Membimbing Pengawas Muda', desc: 'Laporan pembimbingan pengawas madrasah muda dalam tugas pokok.' },
+          { id: 'k4_6', title: '4.6 Bimlat Penelitian Tindakan (PTK/PTS)', desc: 'Pelaksanaan bimlat penelitian tindakan guru/kepala madrasah.' },
+          { id: 'k4_7', title: '4.7 Laporan Hasil Bimlat Profesional', desc: 'Laporan hasil pembimbingan dan pelatihan profesional.' }
+        ]
+      },
+      Utama: {
+        K1: [
+          { id: 'k1_1', title: '1.1 Program Pengawasan Tahunan', desc: 'Memiliki program pengawasan tahunan komprehensif (6 aspek).' },
+          { id: 'k1_2', title: '1.2 Program Pembinaan Guru & Kepala Madrasah', desc: 'Program pembinaan guru dan kepala madrasah berbasis Data Rapor Pendidikan.' },
+          { id: 'k1_3', title: '1.3 Program Pemantauan 8 SNP', desc: 'Program pemantauan 8 Standar Nasional Pendidikan menyeluruh.' },
+          { id: 'k1_4', title: '1.4 Program PKG & PKKM', desc: 'Program penilaian kinerja guru dan kepala madrasah (PKKM).' },
+          { id: 'k1_5', title: '1.5 Program Semester Akademik & Manajerial', desc: 'Program semester terstruktur.' },
+          { id: 'k1_6', title: '1.6 RPA/RPBK & RPM Komprehensif', desc: 'Memiliki RPA/RPBK dan RPM memenuhi 10 aspek baku.' }
+        ],
+        K2: [
+          { id: 'k2_1', title: '2.1 Pelaksanaan Pembinaan Guru & KM', desc: 'Laporan pelaksanaan pembinaan guru dan kepala madrasah.' },
+          { id: 'k2_2', title: '2.2 Pemantauan 8 SNP', desc: 'Laporan pemantauan 8 SNP di madrasah binaan.' },
+          { id: 'k2_3', title: '2.3 Pelaksanaan PKG & PKKM', desc: 'Laporan pelaksanaan PKG dan PKKM secara terstruktur.' },
+          { id: 'k2_4', title: '2.4 Laporan Tahunan Pengawasan Utama', desc: 'Laporan tahunan pengawasan yang memenuhi 7 aspek.' }
+        ],
+        K3: [
+          { id: 'k3_1', title: '3.1 Evaluasi Pembinaan Guru & KM', desc: 'Laporan evaluasi pembinaan guru dan kepala madrasah.' },
+          { id: 'k3_2', title: '3.2 Evaluasi Pemantauan 8 SNP', desc: 'Laporan evaluasi pelaksanaan 8 SNP.' },
+          { id: 'k3_3', title: '3.3 Evaluasi PKG & PKKM', desc: 'Laporan evaluasi hasil PKG dan PKKM.' },
+          { id: 'k3_4', title: '3.4 Laporan Evaluasi Program Pengawasan', desc: 'Laporan evaluasi program pengawasan tingkat madrasah binaan.' },
+          { id: 'k3_5', title: '3.5 Evaluasi Pengawasan Tingkat Kab/Kota/Provinsi', desc: 'Laporan evaluasi pelaksanaan program pengawasan tingkat Kab/Kota atau Provinsi.' }
+        ],
+        K4: [
+          { id: 'k4_1', title: '4.1 Program Bimlat Guru & KM', desc: 'Program bimlat guru dan kepala madrasah di KKG/MGMP & KKKM.' },
+          { id: 'k4_2', title: '4.2 Pelaksanaan Bimlat Guru & KM', desc: 'Laporan pelaksanaan bimlat guru dan kepala madrasah.' },
+          { id: 'k4_3', title: '4.3 Bimlat Manajemen, Kepemimpinan & SIM', desc: 'Membimbing KM menyusun program, RKAM, kepemimpinan dan SIM.' },
+          { id: 'k4_4', title: '4.4 Evaluasi Hasil Bimlat Guru & KM', desc: 'Laporan evaluasi hasil bimlat di KKG/MGMP/KKKM.' },
+          { id: 'k4_5', title: '4.5 Membimbing Pengawas Muda & Madya', desc: 'Membimbing pengawas madrasah muda dan madya dalam tugas pokok.' },
+          { id: 'k4_6', title: '4.6 Bimlat Penelitian Tindakan (PTK/PTS)', desc: 'Membimbing guru dan kepala madrasah dalam Penelitian Tindakan (PTK/PTS).' },
+          { id: 'k4_7', title: '4.7 Laporan Tahunan Bimlat Profesional', desc: 'Laporan tahunan hasil bimlat profesional (7 aspek).' }
+        ]
+      }
+    };
+
+    // --- INITIAL APP STATE ---
+    const INITIAL_DATA = {
+      tahunPenilaian: "2026",
+      periodeAwal: "01 Januari 2026",
+      periodeAkhir: "31 Desember 2026",
+      jenjangPengawas: "Madya", // Muda | Madya | Utama
+      tingkatBinaan: ["MI", "MTs"], // RA, MI, MTs, MA, MAK
+      
+      // Data Pengawas (Pegawai yang dinilai)
+      pengawas: {
+        nama: "Drs. H. Ahmad Dahlan, M.Pd.I",
+        nip: "197208151998031002",
+        pangkatGol: "Pembina Utama Muda / IV-c",
+        jabatan: "Pengawas Madrasah Ahli Madya",
+        unitKerja: "Kantor Kementerian Agama Kabupaten/Kota",
+        jumlahMadrasahBinaan: "10 Madrasah",
+        jumlahGuruBinaan: "120 Guru"
+      },
+
+      // Data Pejabat Penilai Kinerja
+      penilai: {
+        nama: "Dr. H. Muhammad Ridwan, M.Ag",
+        nip: "196805101994031005",
+        pangkatGol: "Pembina Utama Madya / IV-d",
+        jabatan: "Kepala Kantor Kementerian Agama",
+        unitKerja: "Kantor Kementerian Agama Kabupaten/Kota"
+      },
+
+      // Data Atasan Pejabat Penilai Kinerja
+      atasanPenilai: {
+        nama: "Prof. Dr. H. Saiful Bahri, M.A",
+        nip: "196503121990031001",
+        pangkatGol: "Pembina Utama / IV-e",
+        jabatan: "Kepala Kantor Wilayah Kementerian Agama Provinsi",
+        unitKerja: "Kantor Wilayah Kementerian Agama"
+      },
+
+      // Nilai Skor Komponen PKPM (1 - 4 per indikator)
+      scores: {
+        // Komponen K1 (Bobot 10)
+        k1_1: 4, k1_2: 4, k1_3: 4, k1_4: 4, k1_5: 3, k1_6: 4,
+        // Komponen K2 (Bobot 50)
+        k2_1: 3, k2_2: 3, k2_3: 4, k2_4: 3,
+        // Komponen K3 (Bobot 10)
+        k3_1: 3, k3_2: 3, k3_3: 4, k3_4: 3, k3_5: 3,
+        // Komponen K4 (Bobot 30)
+        k4_1: 4, k4_2: 3, k4_3: 3, k4_4: 3, k4_5: 4, k4_6: 3, k4_7: 3
+      },
+
+      // SKP e-Kinerja BKN (Rencana Hasil Kerja Utama & Tambahan)
+      hasilKerjaUtama: [
+        {
+          id: 1,
+          rencanaKerja: "Tersusunnya Program Pengawasan Tahunan Akademik dan Manajerial berbasis Data Rapor Pendidikan",
+          indikator: "Dokumen Program Pengawasan yang disahkan",
+          target: "1 Dokumen / 100%",
+          realisasi: "1 Dokumen disahkan tepat waktu",
+          umpanBalik: "Sangat baik, komprehensif dan sesuai petunjuk teknis Kemenag.",
+          capaian: "Diatas Ekspektasi"
+        },
+        {
+          id: 2,
+          rencanaKerja: "Terlaksananya Pembinaan, Pemantauan 8 SNP, dan Penilaian Kinerja Kepala Madrasah (PKKM) dan Guru",
+          indikator: "Laporan Hasil Pengawasan & Nilai PKKM/PKG",
+          target: "100% Madrasah Binaan",
+          realisasi: "100% terlaksana di 10 Madrasah Binaan",
+          umpanBalik: "Pendampingan dan penilaian objektif.",
+          capaian: "Sesuai Ekspektasi"
+        },
+        {
+          id: 3,
+          rencanaKerja: "Terlaksananya Pembimbingan dan Pelatihan Profesional Guru dan Kepala Madrasah di KKG/MGMP/KKKM",
+          indikator: "Jumlah kegiatan bimbingan & pelatihan terstruktur",
+          target: "4 Kegiatan / Tahun",
+          realisasi: "5 Kegiatan terlaksana",
+          umpanBalik: "Sangat responsif terhadap peningkatan mutu pembelajaran.",
+          capaian: "Diatas Ekspektasi"
+        }
+      ],
+
+      hasilKerjaTambahan: [
+        {
+          id: 101,
+          rencanaKerja: "Aktif sebagai Pengurus Pokjawas Madrasah tingkat Kabupaten / Provinsi",
+          indikator: "SK Kepengurusan & Laporan Kegiatan",
+          target: "1 SK Kegiatan",
+          realisasi: "1 SK aktif berjalan",
+          umpanBalik: "Memberikan kontribusi aktif bagi keorganisasian.",
+          capaian: "Sesuai Ekspektasi"
+        }
+      ],
+
+      // Perilaku Kerja ASN BerAKHLAK (e-Kinerja BKN)
+      perilakuKerja: {
+        berorientasiPelayanan: {
+          rating: "Diatas Ekspektasi",
+          ekspektasiKhusus: "Cepat merespon kendala manajerial dan akademik di madrasah binaan.",
+          umpanBalik: "Solutif dan sangat komunikatif."
+        },
+        akuntabel: {
+          rating: "Sesuai Ekspektasi",
+          ekspektasiKhusus: "Melaksanakan pengawasan dengan cermat, jujur, dan berintegritas.",
+          umpanBalik: "Laporan pengawasan tepat waktu dan akurat."
+        },
+        kompeten: {
+          rating: "Diatas Ekspektasi",
+          ekspektasiKhusus: "Menguasai regulasi Kurikulum Merdeka dan instrumen PKKM/PKG.",
+          umpanBalik: "Sering menjadi narasumber teknis."
+        },
+        harmonis: {
+          rating: "Sesuai Ekspektasi",
+          ekspektasiKhusus: "Membangun hubungan kerja harmonis dengan Pengawas, Seksi Penmad, dan KKM.",
+          umpanBalik: "Sangat menghargai perbedaan dan kooperatif."
+        },
+        loyal: {
+          rating: "Sesuai Ekspektasi",
+          ekspektasiKhusus: "Memegang teguh visi Kementerian Agama dan ideologi Pancasila.",
+          umpanBalik: "Integritas tinggi sebagai ASN Kemenag."
+        },
+        adaptif: {
+          rating: "Diatas Ekspektasi",
+          ekspektasiKhusus: "Proaktif mengadopsi e-Kinerja BKN dan Rapor Pendidikan.",
+          umpanBalik: "Cepat menyesuaikan diri dengan aplikasi digital."
+        },
+        kolaboratif: {
+          rating: "Sesuai Ekspektasi",
+          ekspektasiKhusus: "Mendorong sinergi antara Pokjawas, KKM, dan MGMP/KKG.",
+          umpanBalik: "Kerjasama tim berjalan sangat efektif."
+        }
+      },
+
+      // Catatan & Tanggal
+      penilaianAkhir: {
+        ratingHasilKerja: "Diatas Ekspektasi",
+        ratingPerilakuKerja: "Diatas Ekspektasi",
+        catatanPenilai: "Pengawas menunjukkan kinerja sangat baik dalam penyusunan program, pembinaan madrasah binaan, serta peningkatan profesionalisme guru/kepala madrasah.",
+        tanggalPenilaian: "31 Desember 2026",
+        tempatPenilaian: "Kabupaten/Kota"
+      }
+    };
+
+    // --- MAIN APP COMPONENT ---
+    function App() {
+      const [data, setData] = useState(() => {
+        const saved = localStorage.getItem('pkpm_kemenag_pedoman_2014_v2');
+        return saved ? JSON.parse(saved) : INITIAL_DATA;
+      });
+
+      const [activeTab, setActiveTab] = useState('profil');
+      const [toastMessage, setToastMessage] = useState('');
+
+      // Auto save to Local Storage
+      useEffect(() => {
+        localStorage.setItem('pkpm_kemenag_pedoman_2014_v2', JSON.stringify(data));
+      }, [data]);
+
+      // Refresh Lucide Icons
+      useEffect(() => {
+        if (window.lucide) {
+          window.lucide.createIcons();
+        }
+      });
+
+      const showToast = (msg) => {
+        setToastMessage(msg);
+        setTimeout(() => setToastMessage(''), 3000);
+      };
+
+      const handleResetData = () => {
+        if (window.confirm("Apakah Anda yakin ingin mengembalikan data ke pengaturan awal (default)? Semua data akan direset.")) {
+          setData(INITIAL_DATA);
+          showToast("Data berhasil direset ke standar Pedoman PKPM Kemenag.");
+        }
+      };
+
+      const handleExportJSON = () => {
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data, null, 2));
+        const downloadAnchor = document.createElement('a');
+        downloadAnchor.setAttribute("href", dataStr);
+        downloadAnchor.setAttribute("download", `Backup_PKPM_${data.pengawas.nama.replace(/\s+/g, '_')}_${data.tahunPenilaian}.json`);
+        document.body.appendChild(downloadAnchor);
+        downloadAnchor.click();
+        downloadAnchor.remove();
+        showToast("Backup data JSON berhasil diunduh.");
+      };
+
+      const handleImportJSON = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          try {
+            const importedData = JSON.parse(event.target.result);
+            setData(importedData);
+            showToast("Data PKPM berhasil diimpor!");
+          } catch (err) {
+            showToast("Gagal mengimpor file: Format JSON tidak valid.");
+          }
+        };
+        reader.readAsText(file);
+      };
+
+      const handlePrint = () => {
+        window.print();
+      };
+
+      const handleExportPDF = () => {
+        const element = document.getElementById('printable-document');
+        showToast("Menyiapkan dokumen PDF PKPM...");
+        const opt = {
+          margin:       [8, 8, 8, 8],
+          filename:     `Laporan_PKPM_Kemenag_${data.pengawas.nama.replace(/\s+/g, '_')}_${data.tahunPenilaian}.pdf`,
+          image:        { type: 'jpeg', quality: 0.98 },
+          html2canvas:  { scale: 2, useCORS: true },
+          jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+        html2pdf().set(opt).from(element).save().then(() => {
+          showToast("PDF PKPM Berhasil diunduh!");
+        }).catch(err => {
+          console.error(err);
+          showToast("Gagal mengekspor PDF.");
+        });
+      };
+
+      // --- KALKULASI PENILAIAN PKPM BERDASARKAN JUKNIS PEDOMAN KEMENAG ---
+      const activeIndicators = INDIKATOR_JENJANG[data.jenjangPengawas] || INDIKATOR_JENJANG.Madya;
+
+      const calcKomponen = (listKey) => {
+        const list = activeIndicators[listKey] || [];
+        if (list.length === 0) return { avgSkor: 0, totalSkor: 0, count: 0 };
+        let sum = 0;
+        list.forEach(ind => {
+          const val = Number(data.scores[ind.id]) || 1;
+          sum += val;
+        });
+        const avgSkor = sum / list.length; // Skor Komponen (1.00 - 4.00)
+        return { avgSkor, totalSkor: sum, count: list.length };
+      };
+
+      const k1Calc = calcKomponen('K1');
+      const k2Calc = calcKomponen('K2');
+      const k3Calc = calcKomponen('K3');
+      const k4Calc = calcKomponen('K4');
+
+      // Bobot Komponen Juknis Kemenag: K1=10, K2=50, K3=10, K4=30
+      const nk1 = 10 * k1Calc.avgSkor;
+      const nk2 = 50 * k2Calc.avgSkor;
+      const nk3 = 10 * k3Calc.avgSkor;
+      const nk4 = 30 * k4Calc.avgSkor;
+
+      const totalNK = nk1 + nk2 + nk3 + nk4; // Max 400
+      const nilaiKinerjaAKhir = (totalNK / 400) * 100; // Skala 0 - 100
+
+      // Predikat Nilai Kemenag (Tabel 4.2 Pedoman PKPM):
+      // 91-100: A (Amat Baik) | 76-90: B (Baik) | 61-75: C (Cukup) | 51-60: D (Sedang) | 0-50: E (Kurang)
+      const getPredikatKemenag = (score) => {
+        if (score >= 91) return { hur: 'A', ket: 'Amat Baik', color: 'bg-emerald-100 text-emerald-800 border-emerald-300' };
+        if (score >= 76) return { hur: 'B', ket: 'Baik', color: 'bg-blue-100 text-blue-800 border-blue-300' };
+        if (score >= 61) return { hur: 'C', ket: 'Cukup', color: 'bg-yellow-100 text-yellow-800 border-yellow-300' };
+        if (score >= 51) return { hur: 'D', ket: 'Sedang', color: 'bg-orange-100 text-orange-800 border-orange-300' };
+        return { hur: 'E', ket: 'Kurang', color: 'bg-rose-100 text-rose-800 border-rose-300' };
+      };
+
+      const predikatKemenag = getPredikatKemenag(nilaiKinerjaAKhir);
+
+      // --- MATRIKS PREDIKAT KINERJA BKN ---
+      const calculatePredikatBKN = (hasil, perilaku) => {
+        if (hasil === 'Diatas Ekspektasi' && perilaku === 'Diatas Ekspektasi') return 'Sangat Baik';
+        if (hasil === 'Diatas Ekspektasi' && perilaku === 'Sesuai Ekspektasi') return 'Baik';
+        if (hasil === 'Sesuai Ekspektasi' && perilaku === 'Diatas Ekspektasi') return 'Baik';
+        if (hasil === 'Sesuai Ekspektasi' && perilaku === 'Sesuai Ekspektasi') return 'Baik';
+        if (hasil === 'Dibawah Ekspektasi' && perilaku === 'Diatas Ekspektasi') return 'Butuh Perbaikan';
+        if (hasil === 'Dibawah Ekspektasi' && perilaku === 'Sesuai Ekspektasi') return 'Kurang';
+        if (hasil === 'Diatas Ekspektasi' && perilaku === 'Dibawah Ekspektasi') return 'Butuh Perbaikan';
+        if (hasil === 'Sesuai Ekspektasi' && perilaku === 'Dibawah Ekspektasi') return 'Kurang';
+        return 'Sangat Kurang';
+      };
+
+      const predikatBKN = calculatePredikatBKN(
+        data.penilaianAkhir.ratingHasilKerja,
+        data.penilaianAkhir.ratingPerilakuKerja
+      );
+
+      // Diagnostic Recommendations Based on Lowest Scoring Component
+      const getAnalisisRekomendasi = () => {
+        const scoresArr = [
+          { name: 'Penyusunan Program (K1)', val: k1Calc.avgSkor, code: 'K1' },
+          { name: 'Pelaksanaan Program (K2)', val: k2Calc.avgSkor, code: 'K2' },
+          { name: 'Evaluasi Hasil (K3)', val: k3Calc.avgSkor, code: 'K3' },
+          { name: 'Pembimbingan & Pelatihan Guru/KM (K4)', val: k4Calc.avgSkor, code: 'K4' }
+        ];
+        scoresArr.sort((a, b) => a.val - b.val);
+        const lowest = scoresArr[0];
+
+        if (lowest.val >= 3.8) {
+          return "Secara umum seluruh komponen kinerja pengawas berada pada kualifikasi Amat Baik. Direkomendasikan untuk terus mempertahankan mutu pengawasan dan mengimbaskan praktik baik kepengawasan kepada sesama pengawas madrasah.";
+        }
+        if (lowest.code === 'K4') {
+          return `Prioritas peningkatan kinerja berada pada Komponen ${lowest.name} (Skor: ${lowest.val.toFixed(2)}). Disarankan mengikuti workshop penyusunan program bimlat terstruktur di KKG/MGMP/KKKM dan pendampingan Penelitian Tindakan (PTK/PTS).`;
+        }
+        if (lowest.code === 'K2') {
+          return `Prioritas peningkatan kinerja berada pada Komponen ${lowest.name} (Skor: ${lowest.val.toFixed(2)}). Disarankan memperintensif frekuensi kunjungan pendampingan SNP dan objektivitas penilaian PKKM/PKG di madrasah binaan.`;
+        }
+        if (lowest.code === 'K3') {
+          return `Prioritas peningkatan kinerja berada pada Komponen ${lowest.name} (Skor: ${lowest.val.toFixed(2)}). Disarankan menyusun laporan evaluasi berbasis data Rapor Pendidikan untuk umpan balik konstruktif bagi madrasah.`;
+        }
+        return `Prioritas peningkatan kinerja berada pada Komponen ${lowest.name} (Skor: ${lowest.val.toFixed(2)}). Disarankan merevisi dokumen program pengawasan tahunan dan semester agar memenuhi kriteria aspek Juknis Kemenag.`;
+      };
+
+      return (
+        <div className="min-h-screen flex flex-col">
+          {/* TOAST NOTIFICATION */}
+          {toastMessage && (
+            <div className="fixed bottom-5 right-5 z-50 bg-emerald-800 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center space-x-2 no-print border border-emerald-600 animate-bounce">
+              <i data-lucide="check-circle" className="w-5 h-5 text-emerald-300"></i>
+              <span className="font-medium text-sm">{toastMessage}</span>
+            </div>
+          )}
+
+          {/* HEADER (Non-Printable) */}
+          <header className="bg-emerald-900 text-white shadow-md no-print border-b border-emerald-800">
+            <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div className="flex items-center space-x-3">
+                <div className="bg-emerald-700 p-2.5 rounded-xl text-yellow-400 shadow-inner">
+                  <i data-lucide="award" className="w-7 h-7"></i>
+                </div>
+                <div>
+                  <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+                    SIM-PKPM Kemenag
+                    <span className="text-[10px] font-semibold bg-yellow-400 text-emerald-950 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                      Pedoman 2014 & e-Kinerja BKN
+                    </span>
+                  </h1>
+                  <p className="text-xs text-emerald-200">Penilaian Kinerja Pengawas Madrasah (RA, MI, MTs, MA, MAK)</p>
+                </div>
+              </div>
+
+              {/* Utility Action Buttons */}
+              <div className="flex flex-wrap items-center gap-2">
+                <label className="cursor-pointer bg-emerald-800 hover:bg-emerald-700 text-emerald-100 text-xs px-3 py-2 rounded-lg font-medium transition flex items-center gap-1 border border-emerald-700">
+                  <i data-lucide="upload" className="w-3.5 h-3.5"></i>
+                  <span>Impor JSON</span>
+                  <input type="file" accept=".json" onChange={handleImportJSON} className="hidden" />
+                </label>
+                <button onClick={handleExportJSON} className="bg-emerald-800 hover:bg-emerald-700 text-emerald-100 text-xs px-3 py-2 rounded-lg font-medium transition flex items-center gap-1 border border-emerald-700">
+                  <i data-lucide="download" className="w-3.5 h-3.5"></i>
+                  <span>Backup JSON</span>
+                </button>
+                <button onClick={handleResetData} className="bg-rose-900/60 hover:bg-rose-800 text-rose-200 text-xs px-3 py-2 rounded-lg font-medium transition flex items-center gap-1 border border-rose-700/50">
+                  <i data-lucide="rotate-ccw" className="w-3.5 h-3.5"></i>
+                  <span>Reset</span>
+                </button>
+              </div>
+            </div>
+          </header>
+
+          {/* MAIN NAVIGATION TABS */}
+          <nav className="bg-white border-b border-slate-200 shadow-sm no-print sticky top-0 z-30">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="flex space-x-1 overflow-x-auto py-2 scrollbar-none">
+                {[
+                  { id: 'profil', label: '1. Profil & Jenjang', icon: 'user' },
+                  { id: 'instrumen', label: '2. Instrumen PKPM (K1-K4)', icon: 'check-square' },
+                  { id: 'ekinerja', label: '3. SKP & BerAKHLAK (BKN)', icon: 'file-text' },
+                  { id: 'matriks', label: '4. Hasil & Rekomendasi', icon: 'bar-chart-3' },
+                  { id: 'cetak', label: '5. Cetak Laporan PDF', icon: 'printer' }
+                ].map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
+                      activeTab === tab.id
+                        ? 'bg-emerald-700 text-white shadow-sm'
+                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                    }`}
+                  >
+                    <i data-lucide={tab.icon} className="w-4 h-4"></i>
+                    <span>{tab.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </nav>
+
+          {/* APP BODY CONTENT */}
+          <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-6 sm:px-6 lg:px-8">
+            
+            {/* TAB 1: PROFIL & JENJANG PENGAWAS */}
+            {activeTab === 'profil' && (
+              <div className="space-y-6">
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+                  <h2 className="text-lg font-bold text-slate-800 border-b border-slate-100 pb-3 flex items-center gap-2">
+                    <i data-lucide="sliders" className="w-5 h-5 text-emerald-600"></i>
+                    Pengaturan Jenjang Pengawas & Tingkat Binaan
+                  </h2>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">Jenjang Pengawas Madrasah</label>
+                      <select 
+                        value={data.jenjangPengawas}
+                        onChange={(e) => setData({...data, jenjangPengawas: e.target.value})}
+                        className="w-full text-sm font-bold border border-emerald-600 rounded-lg p-2.5 bg-emerald-50 text-emerald-900 focus:ring-2 focus:ring-emerald-500"
+                      >
+                        <option value="Muda">Pengawas Muda (4 SNP)</option>
+                        <option value="Madya">Pengawas Madya (8 SNP)</option>
+                        <option value="Utama">Pengawas Utama (8 SNP & Evaluasi Kab/Prov)</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">Tahun Penilaian</label>
+                      <input 
+                        type="text" 
+                        value={data.tahunPenilaian}
+                        onChange={(e) => setData({...data, tahunPenilaian: e.target.value})}
+                        className="w-full text-sm border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-emerald-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">Awal Periode</label>
+                      <input 
+                        type="text" 
+                        value={data.periodeAwal}
+                        onChange={(e) => setData({...data, periodeAwal: e.target.value})}
+                        className="w-full text-sm border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-emerald-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">Akhir Periode</label>
+                      <input 
+                        type="text" 
+                        value={data.periodeAkhir}
+                        onChange={(e) => setData({...data, periodeAkhir: e.target.value})}
+                        className="w-full text-sm border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-emerald-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="pt-3 border-t border-slate-100">
+                    <label className="block text-xs font-medium text-slate-700 mb-2">Jenjang Madrasah Binaan (Sesuai PMA No. 2 Th 2012):</label>
+                    <div className="flex flex-wrap gap-3">
+                      {['RA', 'MI', 'MTs', 'MA', 'MAK'].map((jenjang) => (
+                        <label key={jenjang} className="flex items-center space-x-2 text-sm bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-lg cursor-pointer hover:bg-emerald-50">
+                          <input 
+                            type="checkbox"
+                            checked={data.tingkatBinaan.includes(jenjang)}
+                            onChange={(e) => {
+                              const updated = e.target.checked
+                                ? [...data.tingkatBinaan, jenjang]
+                                : data.tingkatBinaan.filter(j => j !== jenjang);
+                              setData({...data, tingkatBinaan: updated});
+                            }}
+                            className="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4"
+                          />
+                          <span className="font-semibold text-slate-800">{jenjang}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* IDENTITAS PENGAWAS */}
+                  <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-3">
+                    <h2 className="text-md font-bold text-slate-800 border-b border-slate-100 pb-2 flex items-center gap-2">
+                      <i data-lucide="user-check" className="w-5 h-5 text-emerald-600"></i>
+                      Identitas Pengawas (Yang Dinilai)
+                    </h2>
+                    
+                    <div>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">Nama Lengkap & Gelar</label>
+                      <input 
+                        type="text" 
+                        value={data.pengawas.nama}
+                        onChange={(e) => setData({...data, pengawas: {...data.pengawas, nama: e.target.value}})}
+                        className="w-full text-sm border border-slate-300 rounded-lg p-2"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-xs font-medium text-slate-600 mb-1">NIP</label>
+                        <input 
+                          type="text" 
+                          value={data.pengawas.nip}
+                          onChange={(e) => setData({...data, pengawas: {...data.pengawas, nip: e.target.value}})}
+                          className="w-full text-sm border border-slate-300 rounded-lg p-2"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-slate-600 mb-1">Pangkat / Golongan</label>
+                        <input 
+                          type="text" 
+                          value={data.pengawas.pangkatGol}
+                          onChange={(e) => setData({...data, pengawas: {...data.pengawas, pangkatGol: e.target.value}})}
+                          className="w-full text-sm border border-slate-300 rounded-lg p-2"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">Jabatan Fungsional</label>
+                      <input 
+                        type="text" 
+                        value={data.pengawas.jabatan}
+                        onChange={(e) => setData({...data, pengawas: {...data.pengawas, jabatan: e.target.value}})}
+                        className="w-full text-sm border border-slate-300 rounded-lg p-2"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">Unit Kerja / Kemenag</label>
+                      <input 
+                        type="text" 
+                        value={data.pengawas.unitKerja}
+                        onChange={(e) => setData({...data, pengawas: {...data.pengawas, unitKerja: e.target.value}})}
+                        className="w-full text-sm border border-slate-300 rounded-lg p-2"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-xs font-medium text-slate-600 mb-1">Jumlah Madrasah Binaan</label>
+                        <input 
+                          type="text" 
+                          value={data.pengawas.jumlahMadrasahBinaan}
+                          onChange={(e) => setData({...data, pengawas: {...data.pengawas, jumlahMadrasahBinaan: e.target.value}})}
+                          className="w-full text-sm border border-slate-300 rounded-lg p-2"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-slate-600 mb-1">Jumlah Guru Binaan</label>
+                        <input 
+                          type="text" 
+                          value={data.pengawas.jumlahGuruBinaan}
+                          onChange={(e) => setData({...data, pengawas: {...data.pengawas, jumlahGuruBinaan: e.target.value}})}
+                          className="w-full text-sm border border-slate-300 rounded-lg p-2"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* IDENTITAS PENILAI & ATASAN */}
+                  <div className="space-y-6">
+                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-3">
+                      <h2 className="text-md font-bold text-slate-800 border-b border-slate-100 pb-2 flex items-center gap-2">
+                        <i data-lucide="user" className="w-5 h-5 text-emerald-600"></i>
+                        Pejabat Penilai Kinerja (Kakankemenag/Kasi)
+                      </h2>
+                      <div>
+                        <label className="block text-xs font-medium text-slate-600 mb-1">Nama Pejabat Penilai</label>
+                        <input 
+                          type="text" 
+                          value={data.penilai.nama}
+                          onChange={(e) => setData({...data, penilai: {...data.penilai, nama: e.target.value}})}
+                          className="w-full text-sm border border-slate-300 rounded-lg p-2"
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-xs font-medium text-slate-600 mb-1">NIP</label>
+                          <input 
+                            type="text" 
+                            value={data.penilai.nip}
+                            onChange={(e) => setData({...data, penilai: {...data.penilai, nip: e.target.value}})}
+                            className="w-full text-sm border border-slate-300 rounded-lg p-2"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-slate-600 mb-1">Jabatan</label>
+                          <input 
+                            type="text" 
+                            value={data.penilai.jabatan}
+                            onChange={(e) => setData({...data, penilai: {...data.penilai, jabatan: e.target.value}})}
+                            className="w-full text-sm border border-slate-300 rounded-lg p-2"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-3">
+                      <h2 className="text-md font-bold text-slate-800 border-b border-slate-100 pb-2 flex items-center gap-2">
+                        <i data-lucide="shield-check" className="w-5 h-5 text-emerald-600"></i>
+                        Atasan Pejabat Penilai Kinerja (Kakanwil/Kabid)
+                      </h2>
+                      <div>
+                        <label className="block text-xs font-medium text-slate-600 mb-1">Nama Atasan Penilai</label>
+                        <input 
+                          type="text" 
+                          value={data.atasanPenilai.nama}
+                          onChange={(e) => setData({...data, atasanPenilai: {...data.atasanPenilai, nama: e.target.value}})}
+                          className="w-full text-sm border border-slate-300 rounded-lg p-2"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-slate-600 mb-1">NIP Atasan Penilai</label>
+                        <input 
+                          type="text" 
+                          value={data.atasanPenilai.nip}
+                          onChange={(e) => setData({...data, atasanPenilai: {...data.atasanPenilai, nip: e.target.value}})}
+                          className="w-full text-sm border border-slate-300 rounded-lg p-2"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* TAB 2: INSTRUMEN PENILAIAN PKPM (K1 - K4) */}
+            {activeTab === 'instrumen' && (
+              <div className="space-y-6">
+                <div className="bg-emerald-900 text-white p-5 rounded-2xl shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
+                  <div>
+                    <h2 className="text-lg font-bold flex items-center gap-2">
+                      <i data-lucide="check-square" className="w-5 h-5 text-yellow-400"></i>
+                      Instrumen PKPM Jenjang: Pengawas {data.jenjangPengawas}
+                    </h2>
+                    <p className="text-xs text-emerald-200 mt-1">
+                      Mengacu pada Pedoman PKPM Direktorat Pendidikan Madrasah Kemenag 2014. Pilih skor 1 - 4 pada setiap butir.
+                    </p>
+                  </div>
+                  <div className="text-right bg-emerald-800 px-4 py-2 rounded-xl border border-emerald-700">
+                    <div className="text-xs text-emerald-200">Estimasi Nilai Kinerja (NK):</div>
+                    <div className="text-xl font-extrabold text-yellow-300">{nilaiKinerjaAKhir.toFixed(2)} ({predikatKemenag.hur} - {predikatKemenag.ket})</div>
+                  </div>
+                </div>
+
+                {[
+                  { key: 'K1', title: 'Komponen K1: Penyusunan Program Pengawasan', bobot: '10%', calc: k1Calc },
+                  { key: 'K2', title: 'Komponen K2: Pelaksanaan Program Pengawasan', bobot: '50%', calc: k2Calc },
+                  { key: 'K3', title: 'Komponen K3: Evaluasi Hasil Pelaksanaan Program Pengawasan', bobot: '10%', calc: k3Calc },
+                  { key: 'K4', title: 'Komponen K4: Pembimbingan & Pelatihan Profesional Guru / Kepala Madrasah', bobot: '30%', calc: k4Calc }
+                ].map((komp) => {
+                  const items = activeIndicators[komp.key] || [];
+                  return (
+                    <div key={komp.key} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-slate-100 pb-3">
+                        <div>
+                          <h3 className="font-bold text-slate-800 text-md">{komp.title}</h3>
+                          <span className="text-xs text-slate-500">Bobot Komponen: <strong className="text-emerald-700">{komp.bobot}</strong></span>
+                        </div>
+                        <div className="bg-slate-100 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-700">
+                          Rata-rata Skor: <span className="text-emerald-700 text-sm">{komp.calc.avgSkor.toFixed(2)}</span> / 4.00
+                        </div>
+                      </div>
+
+                      <div className="space-y-3">
+                        {items.map((ind) => {
+                          const currentScore = data.scores[ind.id] || 3;
+                          return (
+                            <div key={ind.id} className="p-3.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-white transition flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+                              <div className="flex-1">
+                                <h4 className="text-xs font-bold text-slate-800">{ind.title}</h4>
+                                <p className="text-xs text-slate-600 mt-0.5">{ind.desc}</p>
+                              </div>
+                              <div className="flex items-center gap-2 w-full md:w-auto justify-end">
+                                <span className="text-xs text-slate-500 font-medium">Skor:</span>
+                                {[1, 2, 3, 4].map((skorVal) => (
+                                  <button
+                                    key={skorVal}
+                                    type="button"
+                                    onClick={() => {
+                                      setData({
+                                        ...data,
+                                        scores: { ...data.scores, [ind.id]: skorVal }
+                                      });
+                                    }}
+                                    className={`w-8 h-8 rounded-lg text-xs font-bold transition ${
+                                      currentScore === skorVal
+                                        ? 'bg-emerald-700 text-white shadow-sm ring-2 ring-emerald-500'
+                                        : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-100'
+                                    }`}
+                                  >
+                                    {skorVal}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* TAB 3: SKP & EVALUASI PERILAKU BerAKHLAK (e-KINERJA BKN) */}
+            {activeTab === 'ekinerja' && (
+              <div className="space-y-6">
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+                  <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+                    <div>
+                      <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                        <i data-lucide="file-check" className="w-5 h-5 text-emerald-600"></i>
+                        SKP Hasil Kerja Utama (e-Kinerja BKN)
+                      </h2>
+                      <p className="text-xs text-slate-500">Rencana hasil kerja utama pengawas madrasah</p>
+                    </div>
+                    <button 
+                      onClick={() => {
+                        const newId = Date.now();
+                        const newItem = {
+                          id: newId,
+                          rencanaKerja: "Rencana Kerja Utama Pengawas",
+                          indikator: "Laporan Kinerja",
+                          target: "1 Dokumen / 100%",
+                          realisasi: "100% terlaksana",
+                          umpanBalik: "Baik",
+                          capaian: "Sesuai Ekspektasi"
+                        };
+                        setData({...data, hasilKerjaUtama: [...data.hasilKerjaUtama, newItem]});
+                      }}
+                      className="bg-emerald-700 hover:bg-emerald-800 text-white text-xs px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1 shadow-sm"
+                    >
+                      <i data-lucide="plus" className="w-4 h-4"></i>
+                      <span>Tambah RHK</span>
+                    </button>
+                  </div>
+
+                  <div className="space-y-4">
+                    {data.hasilKerjaUtama.map((item, idx) => (
+                      <div key={item.id} className="p-4 rounded-xl border border-slate-200 bg-slate-50 space-y-3">
+                        <div className="flex justify-between items-center border-b border-slate-200 pb-2">
+                          <span className="text-xs font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded">
+                            RHK Utama #{idx + 1}
+                          </span>
+                          <button 
+                            onClick={() => {
+                              const filtered = data.hasilKerjaUtama.filter(i => i.id !== item.id);
+                              setData({...data, hasilKerjaUtama: filtered});
+                            }}
+                            className="text-xs text-rose-600 hover:underline"
+                          >
+                            Hapus
+                          </button>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <div className="md:col-span-2">
+                            <label className="block text-xs font-medium text-slate-600 mb-1">Rencana Hasil Kerja Pengawas</label>
+                            <input 
+                              type="text" 
+                              value={item.rencanaKerja}
+                              onChange={(e) => {
+                                const updated = data.hasilKerjaUtama.map(i => i.id === item.id ? {...i, rencanaKerja: e.target.value} : i);
+                                setData({...data, hasilKerjaUtama: updated});
+                              }}
+                              className="w-full text-xs border border-slate-300 rounded-lg p-2 bg-white"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-slate-600 mb-1">Indikator Kinerja</label>
+                            <input 
+                              type="text" 
+                              value={item.indikator}
+                              onChange={(e) => {
+                                const updated = data.hasilKerjaUtama.map(i => i.id === item.id ? {...i, indikator: e.target.value} : i);
+                                setData({...data, hasilKerjaUtama: updated});
+                              }}
+                              className="w-full text-xs border border-slate-300 rounded-lg p-2 bg-white"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-slate-600 mb-1">Rating Capaian</label>
+                            <select
+                              value={item.capaian}
+                              onChange={(e) => {
+                                const updated = data.hasilKerjaUtama.map(i => i.id === item.id ? {...i, capaian: e.target.value} : i);
+                                setData({...data, hasilKerjaUtama: updated});
+                              }}
+                              className="w-full text-xs font-semibold border border-slate-300 rounded-lg p-2 bg-white"
+                            >
+                              <option value="Diatas Ekspektasi">Diatas Ekspektasi</option>
+                              <option value="Sesuai Ekspektasi">Sesuai Ekspektasi</option>
+                              <option value="Dibawah Ekspektasi">Dibawah Ekspektasi</option>
+                            </select>
+                          </div>
+                          <div className="md:col-span-2">
+                            <label className="block text-xs font-medium text-slate-600 mb-1">Umpan Balik Berkelanjutan (Atasan)</label>
+                            <input 
+                              type="text" 
+                              value={item.umpanBalik}
+                              onChange={(e) => {
+                                const updated = data.hasilKerjaUtama.map(i => i.id === item.id ? {...i, umpanBalik: e.target.value} : i);
+                                setData({...data, hasilKerjaUtama: updated});
+                              }}
+                              className="w-full text-xs border border-slate-300 rounded-lg p-2 bg-emerald-50/50"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* PERILAKU KERJA BerAKHLAK */}
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+                  <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2 border-b border-slate-100 pb-3">
+                    <i data-lucide="heart" className="w-5 h-5 text-emerald-600"></i>
+                    Evaluasi Perilaku Kerja ASN BerAKHLAK (Core Values)
+                  </h2>
+
+                  <div className="space-y-4">
+                    {[
+                      { key: 'berorientasiPelayanan', title: '1. Berorientasi Pelayanan', desc: 'Memahami dan memenuhi kebutuhan madrasah binaan, ramah, solutif.' },
+                      { key: 'akuntabel', title: '2. Akuntabel', desc: 'Melaksanakan tugas pengawasan dengan cermat, jujur, dan berintegritas.' },
+                      { key: 'kompeten', title: '3. Kompeten', desc: 'Meningkatkan kompetensi diri dan membantu orang lain belajar.' },
+                      { key: 'harmonis', title: '4. Harmonis', desc: 'Menghargai setiap orang dan membangun lingkungan kerja kondusif.' },
+                      { key: 'loyal', title: '5. Loyal', desc: 'Memegang teguh ideologi Pancasila & menjaga nama baik Kemenag.' },
+                      { key: 'adaptif', title: '6. Adaptif', desc: 'Cepat menyesuaikan diri dengan perubahan regulasi/teknologi.' },
+                      { key: 'kolaboratif', title: '7. Kolaboratif', desc: 'Mendorong kerjasama sinergis antara Pokjawas, KKM, dan MGMP/KKG.' }
+                    ].map((p) => {
+                      const val = data.perilakuKerja[p.key] || { rating: "Sesuai Ekspektasi", ekspektasiKhusus: "", umpanBalik: "" };
+                      return (
+                        <div key={p.key} className="p-4 rounded-xl border border-slate-200 bg-slate-50 space-y-3">
+                          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                            <div>
+                              <h3 className="font-bold text-slate-800 text-xs">{p.title}</h3>
+                              <p className="text-[11px] text-slate-500">{p.desc}</p>
+                            </div>
+                            <select
+                              value={val.rating}
+                              onChange={(e) => {
+                                const newPerilaku = {
+                                  ...data.perilakuKerja,
+                                  [p.key]: { ...val, rating: e.target.value }
+                                };
+                                setData({ ...data, perilakuKerja: newPerilaku });
+                              }}
+                              className="text-xs font-bold border border-slate-300 rounded-lg p-2 bg-white text-emerald-900"
+                            >
+                              <option value="Diatas Ekspektasi">Diatas Ekspektasi</option>
+                              <option value="Sesuai Ekspektasi">Sesuai Ekspektasi</option>
+                              <option value="Dibawah Ekspektasi">Dibawah Ekspektasi</option>
+                            </select>
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                            <input 
+                              type="text" 
+                              placeholder="Ekspektasi khusus pimpinan..."
+                              value={val.ekspektasiKhusus}
+                              onChange={(e) => {
+                                const newPerilaku = {
+                                  ...data.perilakuKerja,
+                                  [p.key]: { ...val, ekspektasiKhusus: e.target.value }
+                                };
+                                setData({ ...data, perilakuKerja: newPerilaku });
+                              }}
+                              className="text-xs border border-slate-300 rounded-lg p-2 bg-white"
+                            />
+                            <input 
+                              type="text" 
+                              placeholder="Umpan balik..."
+                              value={val.umpanBalik}
+                              onChange={(e) => {
+                                const newPerilaku = {
+                                  ...data.perilakuKerja,
+                                  [p.key]: { ...val, umpanBalik: e.target.value }
+                                };
+                                setData({ ...data, perilakuKerja: newPerilaku });
+                              }}
+                              className="text-xs border border-slate-300 rounded-lg p-2 bg-white"
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* TAB 4: HASIL KINERJA & REKOMENDASI PEMBINAAN */}
+            {activeTab === 'matriks' && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  
+                  {/* RINGKASAN HASIL PKPM KEMENAG (PEDOMAN 2014) */}
+                  <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+                    <h2 className="text-md font-bold text-slate-800 border-b border-slate-100 pb-3 flex items-center gap-2">
+                      <i data-lucide="award" className="w-5 h-5 text-emerald-600"></i>
+                      1. Hasil Nilai Kinerja Pengawas (Pedoman PKPM Kemenag)
+                    </h2>
+
+                    <div className="space-y-2 text-xs">
+                      <div className="flex justify-between py-1.5 border-b border-slate-100">
+                        <span>Penyusunan Program (K1 - Bobot 10)</span>
+                        <strong className="text-slate-800">{nk1.toFixed(1)} / 40 pts ({k1Calc.avgSkor.toFixed(2)})</strong>
+                      </div>
+                      <div className="flex justify-between py-1.5 border-b border-slate-100">
+                        <span>Pelaksanaan Program (K2 - Bobot 50)</span>
+                        <strong className="text-slate-800">{nk2.toFixed(1)} / 200 pts ({k2Calc.avgSkor.toFixed(2)})</strong>
+                      </div>
+                      <div className="flex justify-between py-1.5 border-b border-slate-100">
+                        <span>Evaluasi Hasil (K3 - Bobot 10)</span>
+                        <strong className="text-slate-800">{nk3.toFixed(1)} / 40 pts ({k3Calc.avgSkor.toFixed(2)})</strong>
+                      </div>
+                      <div className="flex justify-between py-1.5 border-b border-slate-100">
+                        <span>Pembimbingan & Pelatihan (K4 - Bobot 30)</span>
+                        <strong className="text-slate-800">{nk4.toFixed(1)} / 120 pts ({k4Calc.avgSkor.toFixed(2)})</strong>
+                      </div>
+                    </div>
+
+                    <div className="p-4 bg-emerald-900 text-white rounded-xl text-center space-y-1">
+                      <span className="text-[10px] text-emerald-300 uppercase tracking-wider">Nilai Akhir Kinerja (NK PKPM):</span>
+                      <div className="text-3xl font-black text-yellow-300">{nilaiKinerjaAKhir.toFixed(2)}</div>
+                      <div className="text-sm font-bold bg-emerald-800 inline-block px-3 py-1 rounded-full text-emerald-100 border border-emerald-700">
+                        Predikat: {predikatKemenag.hur} - {predikatKemenag.ket}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* RINGKASAN PREDIKAT MATRIKS e-KINERJA BKN */}
+                  <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+                    <h2 className="text-md font-bold text-slate-800 border-b border-slate-100 pb-3 flex items-center gap-2">
+                      <i data-lucide="grid" className="w-5 h-5 text-emerald-600"></i>
+                      2. Matriks Predikat Kinerja Pegawai (e-Kinerja BKN)
+                    </h2>
+
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">Rating Hasil Kerja</label>
+                        <select 
+                          value={data.penilaianAkhir.ratingHasilKerja}
+                          onChange={(e) => setData({...data, penilaianAkhir: {...data.penilaianAkhir, ratingHasilKerja: e.target.value}})}
+                          className="w-full text-xs font-bold border border-slate-300 rounded-lg p-2 bg-slate-50"
+                        >
+                          <option value="Diatas Ekspektasi">Diatas Ekspektasi</option>
+                          <option value="Sesuai Ekspektasi">Sesuai Ekspektasi</option>
+                          <option value="Dibawah Ekspektasi">Dibawah Ekspektasi</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">Rating Perilaku Kerja (BerAKHLAK)</label>
+                        <select 
+                          value={data.penilaianAkhir.ratingPerilakuKerja}
+                          onChange={(e) => setData({...data, penilaianAkhir: {...data.penilaianAkhir, ratingPerilakuKerja: e.target.value}})}
+                          className="w-full text-xs font-bold border border-slate-300 rounded-lg p-2 bg-slate-50"
+                        >
+                          <option value="Diatas Ekspektasi">Diatas Ekspektasi</option>
+                          <option value="Sesuai Ekspektasi">Sesuai Ekspektasi</option>
+                          <option value="Dibawah Ekspektasi">Dibawah Ekspektasi</option>
+                        </select>
+                      </div>
+
+                      <div className="p-4 bg-slate-900 text-white rounded-xl text-center space-y-1">
+                        <span className="text-[10px] text-slate-400 uppercase tracking-wider">Predikat Kinerja e-Kinerja BKN:</span>
+                        <div className="text-2xl font-black text-yellow-400">{predikatBKN}</div>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+
+                {/* DIAGNOSIS REKOMENDASI PEMBINAAN OTOMATIS */}
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-3">
+                  <h2 className="text-md font-bold text-slate-800 flex items-center gap-2 border-b border-slate-100 pb-2">
+                    <i data-lucide="compass" className="w-5 h-5 text-emerald-600"></i>
+                    Rekomendasi Pembinaan Profesional (Diagnostik Otomatis)
+                  </h2>
+                  <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-xs leading-relaxed text-amber-900 font-medium">
+                    <p>{getAnalisisRekomendasi()}</p>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Catatan Tambahan Pejabat Penilai Kinerja</label>
+                    <textarea 
+                      rows="3"
+                      value={data.penilaianAkhir.catatanPenilai}
+                      onChange={(e) => setData({...data, penilaianAkhir: {...data.penilaianAkhir, catatanPenilai: e.target.value}})}
+                      className="w-full text-xs border border-slate-300 rounded-lg p-2.5"
+                    ></textarea>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* TAB 5: CETAK LAPORAN PDF RESMI */}
+            {activeTab === 'cetak' && (
+              <div className="space-y-6">
+                <div className="flex justify-between items-center bg-white p-4 rounded-xl border border-slate-200 no-print shadow-sm">
+                  <div>
+                    <h2 className="font-bold text-slate-800">Pratinjau Dokumen Penilaian Kinerja Pengawas (PKPM)</h2>
+                    <p className="text-xs text-slate-500">Sesuai Pedoman PKPM Direktorat Pendidikan Madrasah & e-Kinerja BKN</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={handlePrint}
+                      className="bg-slate-800 hover:bg-slate-900 text-white text-xs px-4 py-2 rounded-lg font-medium transition flex items-center gap-1.5 shadow-sm"
+                    >
+                      <i data-lucide="printer" className="w-4 h-4"></i>
+                      <span>Cetak (Ctrl+P)</span>
+                    </button>
+                    <button 
+                      onClick={handleExportPDF}
+                      className="bg-emerald-700 hover:bg-emerald-800 text-white text-xs px-4 py-2 rounded-lg font-medium transition flex items-center gap-1.5 shadow-sm"
+                    >
+                      <i data-lucide="file-text" className="w-4 h-4"></i>
+                      <span>Unduh PDF</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* DOKUMEN CETAK RESMI (PRINT CANVAS) */}
+                <div id="printable-document" className="bg-white p-8 md:p-12 rounded-none md:rounded-xl shadow-lg border border-slate-200 text-black max-w-[210mm] mx-auto text-[11px] leading-relaxed font-serif-official">
+                  
+                  {/* KOP SURAT RESMI KEMENAG */}
+                  <div className="text-center border-b-2 border-black pb-3 mb-6">
+                    <h3 className="font-bold text-sm tracking-wide uppercase">KEMENTERIAN AGAMA REPUBLIK INDONESIA</h3>
+                    <h4 className="font-bold text-xs uppercase">{data.pengawas.unitKerja.toUpperCase()}</h4>
+                    <p className="text-[10px] italic text-slate-800 mt-0.5">
+                      Laporan Hasil Penilaian Kinerja Pengawas Madrasah (PKPM) - Jenjang: Pengawas {data.jenjangPengawas} ({data.tingkatBinaan.join(', ')})
+                    </p>
+                  </div>
+
+                  <div className="text-center mb-6">
+                    <h2 className="font-bold text-sm uppercase underline decoration-1">LEMBAR HASIL PENILAIAN KINERJA PENGAWAS MADRASAH</h2>
+                    <p className="text-[11px]">PERIODE PENILAIAN: {data.periodeAwal.toUpperCase()} S.D {data.periodeAkhir.toUpperCase()} TAHUN {data.tahunPenilaian}</p>
+                  </div>
+
+                  {/* IDENTITAS TABEL */}
+                  <table className="w-full border-collapse border border-black mb-5 text-[10px]">
+                    <tbody>
+                      <tr className="bg-slate-100 font-bold">
+                        <td className="border border-black p-1.5 text-center w-6">I</td>
+                        <td className="border border-black p-1.5" colSpan="2">PEGAWAI YANG DINILAI</td>
+                        <td className="border border-black p-1.5 text-center w-6">II</td>
+                        <td className="border border-black p-1.5" colSpan="2">PEJABAT PENILAI KINERJA</td>
+                      </tr>
+                      <tr>
+                        <td className="border border-black p-1 text-center">1</td>
+                        <td className="border border-black p-1 w-24 font-semibold">Nama</td>
+                        <td className="border border-black p-1">{data.pengawas.nama}</td>
+                        <td className="border border-black p-1 text-center">1</td>
+                        <td className="border border-black p-1 w-24 font-semibold">Nama</td>
+                        <td className="border border-black p-1">{data.penilai.nama}</td>
+                      </tr>
+                      <tr>
+                        <td className="border border-black p-1 text-center">2</td>
+                        <td className="border border-black p-1 font-semibold">NIP</td>
+                        <td className="border border-black p-1">{data.pengawas.nip}</td>
+                        <td className="border border-black p-1 text-center">2</td>
+                        <td className="border border-black p-1 font-semibold">NIP</td>
+                        <td className="border border-black p-1">{data.penilai.nip}</td>
+                      </tr>
+                      <tr>
+                        <td className="border border-black p-1 text-center">3</td>
+                        <td className="border border-black p-1 font-semibold">Pangkat/Gol.</td>
+                        <td className="border border-black p-1">{data.pengawas.pangkatGol}</td>
+                        <td className="border border-black p-1 text-center">3</td>
+                        <td className="border border-black p-1 font-semibold">Jabatan</td>
+                        <td className="border border-black p-1">{data.penilai.jabatan}</td>
+                      </tr>
+                      <tr>
+                        <td className="border border-black p-1 text-center">4</td>
+                        <td className="border border-black p-1 font-semibold">Jabatan</td>
+                        <td className="border border-black p-1">{data.pengawas.jabatan}</td>
+                        <td className="border border-black p-1 text-center">4</td>
+                        <td className="border border-black p-1 font-semibold">Unit Kerja</td>
+                        <td className="border border-black p-1">{data.penilai.unitKerja}</td>
+                      </tr>
+                      <tr>
+                        <td className="border border-black p-1 text-center">5</td>
+                        <td className="border border-black p-1 font-semibold">Binaan</td>
+                        <td className="border border-black p-1">{data.tingkatBinaan.join('/')} ({data.pengawas.jumlahMadrasahBinaan}, {data.pengawas.jumlahGuruBinaan})</td>
+                        <td className="border border-black p-1 text-center">5</td>
+                        <td className="border border-black p-1 font-semibold">-</td>
+                        <td className="border border-black p-1">-</td>
+                      </tr>
+                    </tbody>
+                  </table>
+
+                  {/* HASIL CAPIAN KOMPONEN K1 - K4 JUKNIS KEMENAG */}
+                  <div className="mb-5">
+                    <h3 className="font-bold text-[11px] mb-1">III. HASIL CAPAIAN KOMPONEN TUGAS POKOK (JUKNIS KEMENAG 2014)</h3>
+                    <table className="w-full border-collapse border border-black text-[10px]">
+                      <thead>
+                        <tr className="bg-slate-100 font-bold text-center">
+                          <th className="border border-black p-1.5 w-8">NO</th>
+                          <th className="border border-black p-1.5">KOMPONEN TUGAS POKOK PENGAWAS MADRASAH</th>
+                          <th className="border border-black p-1.5 w-16">BOBOT</th>
+                          <th className="border border-black p-1.5 w-20">SKOR (1-4)</th>
+                          <th className="border border-black p-1.5 w-24">NILAI (NK)</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td className="border border-black p-1.5 text-center">1</td>
+                          <td className="border border-black p-1.5 font-semibold">Penyusunan Program Pengawasan (K1)</td>
+                          <td className="border border-black p-1.5 text-center">10</td>
+                          <td className="border border-black p-1.5 text-center">{k1Calc.avgSkor.toFixed(2)}</td>
+                          <td className="border border-black p-1.5 text-center font-bold">{nk1.toFixed(1)}</td>
+                        </tr>
+                        <tr>
+                          <td className="border border-black p-1.5 text-center">2</td>
+                          <td className="border border-black p-1.5 font-semibold">Pelaksanaan Program Pengawasan (K2)</td>
+                          <td className="border border-black p-1.5 text-center">50</td>
+                          <td className="border border-black p-1.5 text-center">{k2Calc.avgSkor.toFixed(2)}</td>
+                          <td className="border border-black p-1.5 text-center font-bold">{nk2.toFixed(1)}</td>
+                        </tr>
+                        <tr>
+                          <td className="border border-black p-1.5 text-center">3</td>
+                          <td className="border border-black p-1.5 font-semibold">Evaluasi Hasil Pelaksanaan Program Pengawasan (K3)</td>
+                          <td className="border border-black p-1.5 text-center">10</td>
+                          <td className="border border-black p-1.5 text-center">{k3Calc.avgSkor.toFixed(2)}</td>
+                          <td className="border border-black p-1.5 text-center font-bold">{nk3.toFixed(1)}</td>
+                        </tr>
+                        <tr>
+                          <td className="border border-black p-1.5 text-center">4</td>
+                          <td className="border border-black p-1.5 font-semibold">Pembimbingan dan Pelatihan Profesional Guru / Kepala Madrasah (K4)</td>
+                          <td className="border border-black p-1.5 text-center">30</td>
+                          <td className="border border-black p-1.5 text-center">{k4Calc.avgSkor.toFixed(2)}</td>
+                          <td className="border border-black p-1.5 text-center font-bold">{nk4.toFixed(1)}</td>
+                        </tr>
+                        <tr className="bg-slate-100 font-bold">
+                          <td className="border border-black p-1.5 text-center" colSpan="2">TOTAL SKOR KINERJA (NILAI AKHIR = TOTAL SKOR / 400 x 100)</td>
+                          <td className="border border-black p-1.5 text-center">100</td>
+                          <td className="border border-black p-1.5 text-center">-</td>
+                          <td className="border border-black p-1.5 text-center text-sm">{totalNK.toFixed(1)}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* HASIL AKHIR & PREDIKAT */}
+                  <div className="border border-black p-3 mb-5 bg-slate-50 text-[10px]">
+                    <div className="grid grid-cols-2 gap-2 mb-2">
+                      <div>NILAI KINERJA PKPM KEMENAG: <strong className="text-sm underline">{nilaiKinerjaAKhir.toFixed(2)}</strong></div>
+                      <div>PREDIKAT PKPM (KEMENAG): <strong className="text-sm uppercase underline">{predikatKemenag.hur} ({predikatKemenag.ket})</strong></div>
+                    </div>
+                    <div className="border-t border-black pt-2 grid grid-cols-2 gap-2">
+                      <div>RATING SKP / PERILAKU BKN: <strong>{data.penilaianAkhir.ratingHasilKerja} / {data.penilaianAkhir.ratingPerilakuKerja}</strong></div>
+                      <div>PREDIKAT KINERJA PEGAWAI (BKN): <strong className="text-sm uppercase underline">{predikatBKN}</strong></div>
+                    </div>
+                  </div>
+
+                  {/* REKOMENDASI PEMBINAAN */}
+                  <div className="mb-6 border border-black p-3 text-[10px]">
+                    <h4 className="font-bold underline mb-1">IV. REKOMENDASI HASIL PENILAIAN & PEMBINAAN PROPER</h4>
+                    <p className="italic text-slate-800 mb-2">{getAnalisisRekomendasi()}</p>
+                    {data.penilaianAkhir.catatanPenilai && (
+                      <p className="border-t border-slate-300 pt-1">Catatan Penilai: "{data.penilaianAkhir.catatanPenilai}"</p>
+                    )}
+                  </div>
+
+                  {/* LEMBAR TANDA TANGAN 3 PIHAK */}
+                  <div className="grid grid-cols-2 gap-6 text-[10px] pt-2 page-break-inside-avoid">
+                    <div className="text-center">
+                      <p>Pegawai yang Dinilai,</p>
+                      <div className="h-14"></div>
+                      <p className="font-bold underline">{data.pengawas.nama}</p>
+                      <p>NIP. {data.pengawas.nip}</p>
+                    </div>
+                    <div className="text-center">
+                      <p>{data.penilaianAkhir.tempatPenilaian}, {data.penilaianAkhir.tanggalPenilaian}</p>
+                      <p>Pejabat Penilai Kinerja,</p>
+                      <div className="h-14"></div>
+                      <p className="font-bold underline">{data.penilai.nama}</p>
+                      <p>NIP. {data.penilai.nip}</p>
+                    </div>
+                    <div className="col-span-2 text-center pt-4 border-t border-slate-200">
+                      <p>Mengetahui / Mengesahkan:</p>
+                      <p className="font-bold">Atasan Pejabat Penilai Kinerja</p>
+                      <div className="h-14"></div>
+                      <p className="font-bold underline">{data.atasanPenilai.nama}</p>
+                      <p>NIP. {data.atasanPenilai.nip}</p>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+            )}
+
+          </main>
+
+          {/* FOOTER */}
+          <footer className="bg-white border-t border-slate-200 py-3 mt-auto no-print">
+            <div className="max-w-7xl mx-auto px-4 text-center text-xs text-slate-500 space-y-1">
+              <p>© {new Date().getFullYear()} Aplikasi SIM-PKPM Kemenag - Memedomani Juknis Direktorat Pendidikan Madrasah Kemenag & e-Kinerja BKN</p>
+              <p className="font-semibold text-emerald-800">Developed by : D.E.A 2026</p>
+            </div>
+          </footer>
+        </div>
+      );
+    }
+
+    // Render App
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
